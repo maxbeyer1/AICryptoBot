@@ -8,11 +8,19 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, E
 from sklearn.linear_model import BayesianRidge, ElasticNetCV
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-data = pd.read_csv('./data/ETHUSDT_1h.csv', parse_dates=['time'], index_col='time')
+data = pd.read_csv('./data/ETHUSDT_1h.csv', parse_dates=['time'])
 
 print(data.columns.tolist())
 
-# data['time'] = pd.to_datetime(data['time'], unit='s')
+def datetime_to_float(d):
+    epoch = dt.datetime.utcfromtimestamp(0)
+    total_seconds =  (d - epoch).total_seconds()
+    # total_seconds will be in decimals (millisecond precision)
+    return total_seconds
+
+data['time'] = pd.to_datetime(data['time'], unit='s')
+# data['time'] = data['time'].astype(int)
+data['time'] = data['time'].apply(lambda x: datetime_to_float(x))
 
 print(data.head())
 print(data.info())
@@ -53,11 +61,11 @@ x_forecast_ETH =  data.tail(30).drop(['daily_avg_After_Month','daily_avg'], axis
 # define regression function
 def regression(X_train, X_test, y_train, y_test):
     Regressor = {
-        'Random Forest Regressor': RandomForestRegressor(n_estimators=200),
-        'Gradient Boosting Regressor': GradientBoostingRegressor(n_estimators=500),
+        #'Random Forest Regressor': RandomForestRegressor(n_estimators=200),
+        #'Gradient Boosting Regressor': GradientBoostingRegressor(n_estimators=500),
         'ExtraTrees Regressor': ExtraTreesRegressor(n_estimators=500, min_samples_split=5),
-        'Bayesian Ridge': BayesianRidge(),
-        'Elastic Net CV': ElasticNetCV()
+        #'Bayesian Ridge': BayesianRidge(),
+        #'Elastic Net CV': ElasticNetCV()
     }
 
     for name, clf in Regressor.items():
@@ -69,6 +77,7 @@ def regression(X_train, X_test, y_train, y_test):
         print(f'MSE: {mean_squared_error(y_test, clf.predict(X_test)):.2f}')
         print()
 
+
 regression(x_train_ETH, x_test_ETH, y_train_ETH, y_test_ETH)
 
 # define prediction function
@@ -78,11 +87,18 @@ def prediction(name, X, y, X_forecast):
     target = model.predict(X_forecast)
     return target
 
-# forecasted_ETH = prediction('ETH', x_ETH, y_ETH, x_forecast_ETH)
+forecasted_ETH = prediction('ETH', x_ETH, y_ETH, x_forecast_ETH)
+
+print(forecasted_ETH)
+
+data['time'] = pd.to_datetime(data['time'], unit='s')
+print(data.info())
 
 # define index for next 30 days
 last_date=data.iloc[-1].name
-modified_date = last_date + dt.timedelta(days=1)
+print(last_date)
+modified_date = last_date + dt.timedelta(days=1).days
+
 new_date = pd.date_range(modified_date,periods=30,freq='D')
 
 forecasted_ETH = pd.DataFrame(forecasted_ETH, columns=['daily_avg'], index=new_date)
@@ -90,11 +106,12 @@ forecasted_ETH = pd.DataFrame(forecasted_ETH, columns=['daily_avg'], index=new_d
 ethereum = pd.concat([data[['daily_avg']], forecasted_ETH])
 
 plt.figure(figsize=(15,8))
-(ethereum[:-30]['daily_avg']).plot(label='Historical Price')
-(ethereum[-31:]['daily_avg']).plot(label='Predicted Price')
+(ethereum[:-30]['daily_avg','time']).plot(x='time', y='daily_avg', label='Historical Price')
+(ethereum[-31:]['daily_avg','time']).plot(x='time', y='daily_avg', label='Predicted Price')
 
 plt.xlabel('Time')
 plt.ylabel('Price in USD')
+plt.xlim(0,45446)
 plt.title('Prediction on Daily Average Price of Ethereum')
 plt.legend()
-# plt.show()
+plt.show()
