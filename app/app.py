@@ -115,8 +115,8 @@ ethereum = pd.concat([data[['daily_avg']], forecasted_ETH])
 print(ethereum)
 
 plt.figure(figsize=(15,8))
-(ethereum[:-30]['daily_avg']).plot(label='Historical Price')
-(ethereum[-31:]['daily_avg']).plot(label='Predicted Price')
+(ethereum[22000:-730]['daily_avg']).plot(label='Historical Price')
+(ethereum[-731:]['daily_avg']).plot(label='Predicted Price')
 
 plt.xlabel('Time')
 plt.ylabel('Price in USD')
