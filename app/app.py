@@ -8,9 +8,7 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, E
 from sklearn.linear_model import BayesianRidge, ElasticNetCV
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-data = pd.read_csv('./data/ETHUSDT_1h.csv', parse_dates=['time'], index_col='time')
-
-print(data.index)
+data = pd.read_csv('./data/ETHUSDT_1h.csv', parse_dates=['time'])
 
 print(data.columns.tolist())
 
@@ -108,7 +106,13 @@ print("new_date: " + str(new_date))
 
 forecasted_ETH = pd.DataFrame(forecasted_ETH, columns=['daily_avg'], index=new_date)
 
+data = data.set_index('time')
+
+print(data)
+
 ethereum = pd.concat([data[['daily_avg']], forecasted_ETH])
+
+print(ethereum)
 
 plt.figure(figsize=(15,8))
 (ethereum[:-30]['daily_avg']).plot(label='Historical Price')
