@@ -1,47 +1,53 @@
+# import libraries
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime as dt
 
+# all scikit libraries
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
 from sklearn.linear_model import BayesianRidge, ElasticNetCV
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-data = pd.read_csv('./data/ETHUSDT_1h.csv', parse_dates=['time'])
-
-print(data.columns.tolist())
-
+# convert datetime object to float 
+# (pandas dataset can only have one object type, and in this project, all columns will be floats)
 def datetime_to_float(d):
     epoch = dt.datetime.utcfromtimestamp(0)
     total_seconds =  (d - epoch).total_seconds()
     # total_seconds will be in decimals (millisecond precision)
     return total_seconds
+    
+# import data from CSV
+data = pd.read_csv('./data/ETHUSDT_1h.csv', parse_dates=['time'])
+# print(data.columns.tolist())
 
+# convert all datetime objects to floats
 data['time'] = pd.to_datetime(data['time'], unit='s')
-# data['time'] = data['time'].astype(int)
 data['time'] = data['time'].apply(lambda x: datetime_to_float(x))
+# print(data.head())
+# print(data.info())
 
-print(data.head())
-print(data.info())
-
-# close price graphs
+# plot graph of close prices
 plt.figure(figsize=(15,8))
 (data['close']).plot(color='blue', label='close')
 
+# initialize legend, label x axis, and show graph
 plt.legend()
 plt.xlabel('time')
 plt.show()
 
+
+
 eth = data['close']
 
-# 200 day moving average
+# calculate 200 day moving average
 eth_ma = eth.rolling(window=200).mean()
 
-# get close prices
+# concatenate eth dataset with eth_ma dataset 
 close = pd.concat([eth], axis=1)
 close_ma = pd.concat([eth_ma], axis=1)
-close_ma.tail()
+# close_ma.tail()
 
 # plot moving average for closing price for cryptocurrencies
 close_ma.plot(figsize=(15,8))
@@ -50,15 +56,26 @@ plt.xlabel('time')
 plt.ylabel('price in USD')
 plt.show()
 
+
+
+
 # calculate daily average price
 data['daily_avg'] = (data['open'] + data['high'] + data['low'] + data['close']) / 4
+
+# add column with daily avg a month prior
 data['daily_avg_After_Month']=data['daily_avg'].shift(-168)
+
+# drop rows that contain empty values 
 x_ETH = data.dropna().drop(['daily_avg_After_Month','daily_avg'], axis=1)
 y_ETH = data.dropna()['daily_avg_After_Month']
+
+
+# split data into train and test datasets
 x_train_ETH, x_test_ETH, y_train_ETH, y_test_ETH = train_test_split(x_ETH, y_ETH, test_size=0.2, random_state=43)
 x_forecast_ETH =  data.tail(168).drop(['daily_avg_After_Month','daily_avg'], axis=1)
 
-# define regression function
+# define regression function 
+# provides several options for regression functions 
 def regression(X_train, X_test, y_train, y_test):
     Regressor = {
         #'Random Forest Regressor': RandomForestRegressor(n_estimators=200),
@@ -67,18 +84,22 @@ def regression(X_train, X_test, y_train, y_test):
         #'Bayesian Ridge': BayesianRidge(),
         #'Elastic Net CV': ElasticNetCV()
     }
-
+    
+    # fit models
     for name, clf in Regressor.items():
         print(name)
         clf.fit(X_train, y_train)
     
-        print(f'R2: {r2_score(y_test, clf.predict(X_test)):.2f}')
-        print(f'MAE: {mean_absolute_error(y_test, clf.predict(X_test)):.2f}')
-        print(f'MSE: {mean_squared_error(y_test, clf.predict(X_test)):.2f}')
-        print()
+        # log loss data in console
+        print(f'R2: {r2_score(y_test, clf.predict(X_test)):.2f}') #r^2
+        print(f'MAE: {mean_absolute_error(y_test, clf.predict(X_test)):.2f}') # mean absolute error
+        print(f'MSE: {mean_squared_error(y_test, clf.predict(X_test)):.2f}') # mean squared error
 
-
+# run regression function with test/train data
 regression(x_train_ETH, x_test_ETH, y_train_ETH, y_test_ETH)
+
+
+
 
 # define prediction function
 def prediction(name, X, y, X_forecast):
@@ -87,10 +108,11 @@ def prediction(name, X, y, X_forecast):
     target = model.predict(X_forecast)
     return target
 
+# create array of predicted price data
 forecasted_ETH = prediction('ETH', x_ETH, y_ETH, x_forecast_ETH)
+# print(forecasted_ETH)
 
-print(forecasted_ETH)
-
+# converts floats to datetime object
 data['time'] = pd.to_datetime(data['time'], unit='s')
 print(data.info())
 
@@ -100,24 +122,25 @@ print("last_date: " + str(last_date))
 modified_date = last_date + dt.timedelta(days=1)
 print("modified_date: " + str(modified_date))
 
+# sets how many days to predict data for
 new_date = pd.date_range(modified_date,periods=168,freq='D')
-
 print("new_date: " + str(new_date))
 
+# dataframe for predictions with new date as index
 forecasted_ETH = pd.DataFrame(forecasted_ETH, columns=['daily_avg'], index=new_date)
-
 data = data.set_index('time')
-
 print(forecasted_ETH)
 
+# combine historical data and predictions
 ethereum = pd.concat([data[['daily_avg']], forecasted_ETH])
-
 print(ethereum)
 
+# creates matlpotlib figure from daily average data
 plt.figure(figsize=(15,8))
 (ethereum[22000:-168]['daily_avg']).plot(label='Historical Price')
 (ethereum[-169:]['daily_avg']).plot(label='Predicted Price')
 
+# labels axes, titles, creates legend, and shows final graph
 plt.xlabel('Time')
 plt.ylabel('Price in USD')
 plt.title('Prediction on Daily Average Price of Ethereum')
