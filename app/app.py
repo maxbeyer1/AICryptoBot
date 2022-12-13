@@ -52,11 +52,11 @@ plt.show()
 
 # calculate daily average price
 data['daily_avg'] = (data['open'] + data['high'] + data['low'] + data['close']) / 4
-data['daily_avg_After_Month']=data['daily_avg'].shift(-30)
+data['daily_avg_After_Month']=data['daily_avg'].shift(-168)
 x_ETH = data.dropna().drop(['daily_avg_After_Month','daily_avg'], axis=1)
 y_ETH = data.dropna()['daily_avg_After_Month']
 x_train_ETH, x_test_ETH, y_train_ETH, y_test_ETH = train_test_split(x_ETH, y_ETH, test_size=0.2, random_state=43)
-x_forecast_ETH =  data.tail(30).drop(['daily_avg_After_Month','daily_avg'], axis=1)
+x_forecast_ETH =  data.tail(168).drop(['daily_avg_After_Month','daily_avg'], axis=1)
 
 # define regression function
 def regression(X_train, X_test, y_train, y_test):
@@ -100,7 +100,7 @@ print("last_date: " + str(last_date))
 modified_date = last_date + dt.timedelta(days=1)
 print("modified_date: " + str(modified_date))
 
-new_date = pd.date_range(modified_date,periods=30,freq='D')
+new_date = pd.date_range(modified_date,periods=168,freq='D')
 
 print("new_date: " + str(new_date))
 
@@ -108,15 +108,15 @@ forecasted_ETH = pd.DataFrame(forecasted_ETH, columns=['daily_avg'], index=new_d
 
 data = data.set_index('time')
 
-print(data)
+print(forecasted_ETH)
 
 ethereum = pd.concat([data[['daily_avg']], forecasted_ETH])
 
 print(ethereum)
 
 plt.figure(figsize=(15,8))
-(ethereum[22000:-730]['daily_avg']).plot(label='Historical Price')
-(ethereum[-731:]['daily_avg']).plot(label='Predicted Price')
+(ethereum[22000:-168]['daily_avg']).plot(label='Historical Price')
+(ethereum[-169:]['daily_avg']).plot(label='Predicted Price')
 
 plt.xlabel('Time')
 plt.ylabel('Price in USD')
