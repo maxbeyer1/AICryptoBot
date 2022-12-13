@@ -39,6 +39,7 @@ plt.show()
 
 
 
+
 eth = data['close']
 
 # calculate 200 day moving average
