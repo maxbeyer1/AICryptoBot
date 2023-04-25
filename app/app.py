@@ -87,16 +87,21 @@ def rsi(df, periods = 14, ema = True):
         ma_up = up.rolling(window = periods, adjust=False).mean()
         ma_down = down.rolling(window = periods, adjust=False).mean()
         
+    print("ma_up", ma_up, type(ma_up))
     rsi = ma_up / ma_down
     rsi = 100 - (100/(1 + rsi))
     return rsi
 
 rsi_ETH = []
 
-for i in range(14, data.index.stop):
-    rsi_ETH.append(rsi(data.iloc[i-14:i]))
+for i in range(14, 100):
+    current_rsi = rsi(data.iloc[i-14:i])
+    # print("current rsi: ", type(current_rsi))
+    rsi_ETH.append(current_rsi)
 
-print(rsi_ETH)
+# print(rsi_ETH[0:100])
+
+data['rsi'] = rsi_ETH
 
 # drop rows that contain empty values 
 x_ETH = data.dropna().drop(['daily_avg_After_Month','daily_avg'], axis=1)
